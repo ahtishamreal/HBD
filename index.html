@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>For Nimra</title>
+    <title>For Nimmi</title>
     <style>
         /* Base Styling */
         body {
@@ -16,125 +16,250 @@
             background-color: #0b0914; 
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             overflow: hidden;
+            transition: background-color 1.5s ease-in-out;
         }
 
         /* Canvas Layers */
-        #bgCanvas {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            z-index: 1;
-            pointer-events: none;
-        }
-
-        #confettiCanvas {
+        #bgCanvas, #confettiCanvas {
             position: absolute;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
             pointer-events: none;
-            z-index: 100;
+        }
+        #bgCanvas { z-index: 1; }
+        #confettiCanvas { z-index: 100; }
+
+        /* BALLOON GAME STYLING */
+        #game-screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 200; 
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            pointer-events: none; 
+            transition: opacity 0.5s ease;
         }
 
-        /* Interactive Envelope Styling */
-        .envelope-wrapper {
-            position: relative;
-            width: 300px;
-            height: 200px;
-            /* FIX 1: Pushed the envelope down slightly so the card has room to go up */
-            margin-top: 80px; 
+        .score-board {
+            margin-top: 50px;
+            font-size: 2.5rem;
+            color: white;
+            text-shadow: 0 0 15px #ab47bc, 0 0 30px #ab47bc;
+            font-weight: bold;
+            letter-spacing: 2px;
+            z-index: 201;
+        }
+
+        .game-instruction {
+            color: rgba(255, 255, 255, 0.9);
+            font-size: 1.2rem;
+            margin-top: 10px;
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            text-shadow: 0 0 10px rgba(255,255,255,0.5);
+        }
+
+        #balloon-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            overflow: hidden;
+            z-index: 190;
+            transition: opacity 0.5s ease;
+        }
+
+        .game-balloon {
+            position: absolute;
+            bottom: -100px;
+            width: 70px;
+            height: 90px;
+            border-radius: 50% 50% 50% 50% / 40% 40% 60% 60%;
             cursor: pointer;
-            z-index: 10;
-            transition: transform 0.3s ease;
+            pointer-events: auto; 
+            box-shadow: inset -5px -5px 15px rgba(0,0,0,0.3);
+            animation: floatUp var(--speed) linear infinite; 
+            transition: transform 0.1s ease-out;
         }
 
-        .envelope-wrapper:hover {
-            transform: scale(1.05);
+        .game-balloon::before {
+            content: '';
+            position: absolute;
+            bottom: -10px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 0; height: 0;
+            border-left: 8px solid transparent;
+            border-right: 8px solid transparent;
+            border-bottom: 12px solid inherit;
         }
 
-        .envelope-back {
+        .game-balloon::after {
+            content: '';
+            position: absolute;
+            bottom: -60px;
+            left: 50%;
+            width: 2px;
+            height: 60px;
+            background: rgba(255,255,255,0.4);
+        }
+
+        .popped {
+            animation: popEffect 0.2s ease-out forwards !important;
+            pointer-events: none;
+        }
+
+        @keyframes popEffect {
+            0% { transform: scale(1); opacity: 1; filter: brightness(1); }
+            50% { transform: scale(1.8); opacity: 0.9; filter: brightness(1.5); }
+            100% { transform: scale(2.5); opacity: 0; filter: brightness(2); }
+        }
+
+        @keyframes floatUp {
+            0% { transform: translateY(0) rotate(-5deg); }
+            50% { transform: translateY(-60vh) rotate(5deg); }
+            100% { transform: translateY(-120vh) rotate(-5deg); }
+        }
+
+        /* 3D FLIP CARD STYLING */
+        #main-content {
+            display: none; 
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            z-index: 50;
+            opacity: 0;
+        }
+
+        @keyframes revealCard {
+            0% {
+                opacity: 0;
+                transform: scale(0.5) translateY(150px);
+            }
+            70% {
+                transform: scale(1.05) translateY(-10px);
+            }
+            100% {
+                opacity: 1;
+                transform: scale(1) translateY(0);
+            }
+        }
+
+        .instruction {
+            color: rgba(255, 255, 255, 0.9);
+            font-size: 1.2rem;
+            text-transform: uppercase;
+            font-weight: bold;
+            letter-spacing: 3px;
+            text-align: center;
+            margin-bottom: 30px;
+            text-shadow: 0 0 10px rgba(255,255,255,0.5); 
+        }
+
+        .card-container {
+            background-color: transparent;
+            width: 320px;
+            height: 440px;
+            perspective: 1000px; 
+            cursor: pointer;
+        }
+
+        .card-container:hover .card-inner {
+            transform: scale(1.02);
+        }
+
+        .card-inner {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            text-align: center;
+            transition: transform 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            transform-style: preserve-3d; 
+        }
+
+        .card-container.flipped .card-inner {
+            transform: rotateY(180deg) scale(1.05);
+        }
+
+        .card-front, .card-back {
             position: absolute;
             width: 100%;
             height: 100%;
-            background-color: #9c27b0;
-            border-radius: 10px;
-            box-shadow: 0 15px 40px rgba(0,0,0,0.7);
-        }
-
-        .envelope-front {
-            position: absolute;
-            width: 100%;
-            height: 100%;
-            background-color: #ab47bc;
-            border-radius: 10px;
-            clip-path: polygon(0 0, 50% 50%, 100% 0, 100% 100%, 0 100%);
-            z-index: 3;
-        }
-
-        .envelope-flap {
-            position: absolute;
-            width: 100%;
-            height: 100%;
-            background-color: #ba68c8;
-            border-radius: 10px;
-            clip-path: polygon(0 0, 100% 0, 50% 60%);
-            z-index: 4;
-            transform-origin: top;
-            transition: transform 0.8s ease;
-        }
-
-        .card {
-            position: absolute;
-            width: 280px;
-            height: 350px;
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(5px);
-            bottom: 10px;
-            left: 10px;
-            border-radius: 10px;
-            box-shadow: 0 0 20px rgba(0,0,0,0.3);
-            z-index: 2;
-            transition: transform 1s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            -webkit-backface-visibility: hidden; 
+            backface-visibility: hidden;
+            border-radius: 20px;
+            box-shadow: 0 15px 40px rgba(0,0,0,0.6);
             display: flex;
             flex-direction: column;
             justify-content: center;
             align-items: center;
-            padding: 20px;
+            padding: 30px;
             box-sizing: border-box;
-            text-align: center;
         }
 
-        /* Open State - FIX 2: Reduced the slide height so it stays on screen */
-        .envelope-wrapper.open .envelope-flap {
-            transform: rotateX(180deg);
-            z-index: 1;
+        .card-front {
+            background: linear-gradient(135deg, #ab47bc, #7b1fa2);
+            color: white;
+            border: 2px solid rgba(255,255,255,0.2);
         }
 
-        .envelope-wrapper.open .card {
-            transform: translateY(-130px); /* Changed from -180px */
-            z-index: 5;
+        .gift-icon {
+            font-size: 6rem;
+            margin-bottom: 20px;
+            animation: floatGift 3s ease-in-out infinite;
+            filter: drop-shadow(0 10px 10px rgba(0,0,0,0.4));
         }
 
-        /* Card Contents */
+        .front-text {
+            font-size: 1.8rem;
+            font-weight: bold;
+            letter-spacing: 2px;
+            text-shadow: 0 2px 5px rgba(0,0,0,0.5);
+        }
+
+        @keyframes floatGift {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-15px); }
+        }
+
+        .card-back {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            color: #333;
+            transform: rotateY(180deg);
+            border: 3px solid #9c27b0;
+            transition: border-color 0.5s ease; 
+        }
+
         h1 {
             color: #9c27b0;
             font-size: 1.6rem;
-            margin-bottom: 10px;
-            opacity: 0;
-            transition: opacity 1s ease 1s;
+            margin-bottom: 15px;
+            transition: color 0.5s ease; 
         }
 
         .quote {
-            font-size: 1rem;
-            color: #333;
-            margin-bottom: 20px;
+            font-size: 1.1rem;
+            color: #9c27b0; 
+            margin-bottom: 25px;
+            font-weight: 500;
             font-style: italic;
-            min-height: 80px;
+            min-height: 90px;
             opacity: 0;
-            transition: opacity 0.5s ease;
+            display: flex;
+            align-items: center;
+            transition: opacity 0.5s ease, color 0.5s ease; 
         }
 
         .quote.visible {
@@ -145,69 +270,69 @@
             background-color: #9c27b0;
             color: white;
             border: none;
-            padding: 10px 20px;
-            border-radius: 20px;
-            font-size: 0.9rem;
+            padding: 12px 25px;
+            border-radius: 25px;
+            font-size: 1rem;
+            font-weight: bold;
             cursor: pointer;
             outline: none;
             opacity: 0;
-            transition: background 0.3s, opacity 1s ease 1s, transform 0.2s;
+            transition: background-color 0.5s ease, opacity 1s ease 0.5s, transform 0.2s; 
+        }
+
+        button.visible {
+            opacity: 1;
         }
 
         button:hover {
-            background-color: #7b1fa2;
+            filter: brightness(0.85); 
             transform: scale(1.05);
         }
 
-        .instruction {
-            position: absolute;
-            top: 15%; /* Adjusted for mobile */
-            color: rgba(255, 255, 255, 0.8);
-            font-size: 1.2rem;
-            letter-spacing: 2px;
-            z-index: 20;
-            animation: pulse 2s infinite alternate;
-        }
-
-        @keyframes pulse {
-            0% { opacity: 0.4; }
-            100% { opacity: 1; }
-        }
-
-        /* FIX 3: Mobile Specific Rules */
         @media (max-width: 500px) {
-            .envelope-wrapper {
-                transform: scale(0.85); /* Shrinks the entire envelope to 85% size on phones */
-            }
-            .envelope-wrapper:hover {
-                transform: scale(0.9);
+            .card-container {
+                transform: scale(0.9); 
             }
         }
     </style>
 </head>
 <body>
 
-    <audio id="bgMusic" loop>
+    <audio id="bgMusic" loop preload="auto">
         <source src="song.mp3" type="audio/mpeg">
+    </audio>
+    <audio id="popSound" preload="auto">
+        <source src="pop.mp3" type="audio/mpeg">
     </audio>
 
     <canvas id="bgCanvas"></canvas>
     <canvas id="confettiCanvas"></canvas>
-    <div class="instruction" id="instruction-text">Tap the envelope to open</div>
+    
+    <div id="game-screen">
+        <div class="score-board" id="score-text">0 / 20</div>
+        <div class="game-instruction">Pop 20 balloons to unlock</div>
+    </div>
+    <div id="balloon-container"></div>
 
-    <div class="envelope-wrapper" id="envelope">
-        <div class="envelope-back"></div>
-        <div class="card">
-            <h1 id="bday-title">Happy Birthday, Nimra!</h1>
-            <div class="quote" id="quote-text"></div>
-            <button id="next-quote-btn">Read Another Message</button>
+    <div id="main-content">
+        <div class="instruction" id="instruction-text">TAP THE CARD TO REVEAL</div>
+
+        <div class="card-container" id="birthday-card">
+            <div class="card-inner">
+                <div class="card-front">
+                    <div class="gift-icon">🎁</div>
+                    <div class="front-text">For Nimmi</div>
+                </div>
+                <div class="card-back">
+                    <h1 id="bday-title"><span style="font-size: 3.5rem;">🎊</span><br>Happy 20th Birthday,<br>Nimmi! 🥳👑</h1>
+                    <div class="quote" id="quote-text"></div>
+                    <button id="next-quote-btn">Read Another Message</button>
+                </div>
+            </div>
         </div>
-        <div class="envelope-front"></div>
-        <div class="envelope-flap"></div>
     </div>
 
     <script>
-        // 1. HIGH-LEVEL BACKGROUND (GLOWING ORBS)
         const bgCanvas = document.getElementById('bgCanvas');
         const bgCtx = bgCanvas.getContext('2d');
         bgCanvas.width = window.innerWidth;
@@ -263,87 +388,29 @@
         }
         animateBg();
 
-        // 2. ENVELOPE INTERACTION & MUSIC TRIGGER
-        const envelope = document.getElementById('envelope');
-        const quoteText = document.getElementById('quote-text');
-        const nextQuoteBtn = document.getElementById('next-quote-btn');
-        const bdayTitle = document.getElementById('bday-title');
-        const instruction = document.getElementById('instruction-text');
-        const bgMusic = document.getElementById('bgMusic'); 
-
-        const quotes = [
-            "May this year bring you as much joy and success as you bring to everyone around you.",
-            "Another trip around the sun! Wishing you endless happiness and great achievements.",
-            "Here is to a brilliant day and an even better year ahead.",
-            "Keep shining and doing amazing things. Have a fantastic birthday!"
-        ];
-
-        let currentQuoteIndex = 0;
-        let isOpened = false;
-
-        envelope.addEventListener('click', () => {
-            if (!isOpened) {
-                isOpened = true;
-                
-                // Audio robust loading logic
-                bgMusic.load(); 
-                let playPromise = bgMusic.play();
-                
-                if (playPromise !== undefined) {
-                    playPromise.then(_ => {})
-                    .catch(error => {
-                        console.error("Audio block detected:", error);
-                    });
-                }
-
-                envelope.classList.add('open');
-                instruction.style.display = 'none';
-                bdayTitle.style.opacity = '1';
-                nextQuoteBtn.style.opacity = '1';
-                
-                setTimeout(() => {
-                    quoteText.innerText = `"${quotes[currentQuoteIndex]}"`;
-                    quoteText.classList.add('visible');
-                }, 1000);
-
-                startConfetti();
-                
-                orbs.forEach(orb => {
-                    orb.vx *= 2.5;
-                    orb.vy *= 2.5;
-                });
-            }
-        });
-
-        nextQuoteBtn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            quoteText.classList.remove('visible');
-            setTimeout(() => {
-                currentQuoteIndex = (currentQuoteIndex + 1) % quotes.length;
-                quoteText.innerText = `"${quotes[currentQuoteIndex]}"`;
-                quoteText.classList.add('visible');
-            }, 500);
-        });
-
-        // 3. CONFETTI PHYSICS ENGINE
         const confettiCanvas = document.getElementById('confettiCanvas');
         const confCtx = confettiCanvas.getContext('2d');
         confettiCanvas.width = window.innerWidth;
         confettiCanvas.height = window.innerHeight;
 
-        const confettiPieces = [];
+        const ambientConfetti = [];
+        const ambientFlares = []; 
+        const ambientTexts = []; 
+        const explosionParticles = [];
+        const flares = [];
+        const textFlares = [];
         const confColors = ['#ffcc00', '#ff4081', '#00e5ff', '#b388ff', '#1de9b6'];
 
-        class Confetti {
+        class AmbientConfetti {
             constructor() {
                 this.x = Math.random() * confettiCanvas.width;
                 this.y = Math.random() * confettiCanvas.height - confettiCanvas.height;
                 this.size = Math.random() * 8 + 4;
                 this.color = confColors[Math.floor(Math.random() * confColors.length)];
-                this.speedY = Math.random() * 4 + 3;
+                this.speedY = Math.random() * 3 + 2;
                 this.speedX = Math.random() * 4 - 2;
                 this.rotation = Math.random() * 360;
-                this.rotationSpeed = Math.random() * 15 - 7.5;
+                this.rotationSpeed = Math.random() * 10 - 5;
             }
             update() {
                 this.y += this.speedY;
@@ -364,21 +431,388 @@
             }
         }
 
-        function startConfetti() {
-            for (let i = 0; i < 200; i++) {
-                confettiPieces.push(new Confetti());
+        class AmbientText {
+            constructor() {
+                this.reset(true);
             }
-            animateConfetti();
+            reset(randomY = false) {
+                this.x = Math.random() * confettiCanvas.width;
+                this.y = randomY ? (Math.random() * confettiCanvas.height - confettiCanvas.height) : -50;
+                this.text = "20";
+                this.color = confColors[Math.floor(Math.random() * confColors.length)];
+                this.speedY = Math.random() * 2 + 1.5;
+                this.speedX = Math.random() * 2 - 1;
+                this.size = Math.random() * 15 + 15; 
+                this.rotation = Math.random() * 360;
+                this.rotationSpeed = (Math.random() - 0.5) * 5;
+            }
+            update() {
+                this.y += this.speedY;
+                this.x += this.speedX;
+                this.rotation += this.rotationSpeed;
+                if (this.y > confettiCanvas.height + 50) {
+                    this.reset(false); 
+                }
+            }
+            draw() {
+                confCtx.save();
+                confCtx.translate(this.x, this.y);
+                confCtx.rotate(this.rotation * Math.PI / 180);
+                confCtx.font = `bold ${this.size}px 'Arial Black'`;
+                confCtx.fillStyle = this.color;
+                confCtx.shadowBlur = 5;
+                confCtx.shadowColor = this.color;
+                confCtx.fillText(this.text, 0, 0);
+                confCtx.restore();
+            }
         }
 
-        function animateConfetti() {
-            requestAnimationFrame(animateConfetti);
-            confCtx.clearRect(0, 0, confettiCanvas.width, confettiCanvas.height);
-            confettiPieces.forEach(piece => {
-                piece.update();
-                piece.draw();
-            });
+        class AmbientFlare {
+            constructor() {
+                this.reset();
+                this.life = Math.random(); 
+            }
+            reset() {
+                this.x = Math.random() * window.innerWidth;
+                this.y = Math.random() * window.innerHeight; 
+                this.size = Math.random() * 4 + 2;
+                this.color = confColors[Math.floor(Math.random() * confColors.length)];
+                this.speedX = (Math.random() - 0.5) * 1.5;
+                this.speedY = (Math.random() - 0.5) * 1.5 - 0.5; 
+                this.life = 1.0;
+                this.decay = Math.random() * 0.015 + 0.005; 
+            }
+            update() {
+                this.x += this.speedX;
+                this.y += this.speedY;
+                this.life -= this.decay;
+                if (this.life <= 0) {
+                    this.reset(); 
+                }
+            }
+            draw() {
+                if (this.life <= 0) return;
+                confCtx.save();
+                confCtx.globalAlpha = this.life;
+                confCtx.beginPath();
+                confCtx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                confCtx.fillStyle = this.color;
+                confCtx.shadowBlur = 20;
+                confCtx.shadowColor = this.color;
+                confCtx.fill();
+                confCtx.restore();
+            }
         }
+
+        class ExplosiveConfetti {
+            constructor() {
+                this.x = window.innerWidth / 2; 
+                this.y = window.innerHeight / 2; 
+                this.size = Math.random() * 8 + 4;
+                this.color = confColors[Math.floor(Math.random() * confColors.length)];
+                
+                const angle = Math.random() * Math.PI * 2;
+                const speed = Math.random() * 20 + 5;
+                this.speedX = Math.cos(angle) * speed;
+                this.speedY = Math.sin(angle) * speed - 8; 
+                
+                this.rotation = Math.random() * 360;
+                this.rotationSpeed = Math.random() * 20 - 10;
+            }
+            update() {
+                this.speedY += 0.4; 
+                this.y += this.speedY;
+                this.x += this.speedX;
+                this.rotation += this.rotationSpeed;
+            }
+            draw() {
+                confCtx.save();
+                confCtx.translate(this.x, this.y);
+                confCtx.rotate(this.rotation * Math.PI / 180);
+                confCtx.fillStyle = this.color;
+                confCtx.fillRect(-this.size / 2, -this.size / 2, this.size, this.size * 0.4);
+                confCtx.restore();
+            }
+        }
+
+        class Flare {
+            constructor() {
+                this.x = window.innerWidth / 2;
+                this.y = window.innerHeight / 2; 
+                this.size = Math.random() * 4 + 2;
+                this.color = confColors[Math.floor(Math.random() * confColors.length)];
+                
+                const angle = Math.random() * Math.PI * 2;
+                const speed = Math.random() * 25 + 10; 
+                this.speedX = Math.cos(angle) * speed;
+                this.speedY = Math.sin(angle) * speed;
+                
+                this.life = 1.0;
+                this.decay = Math.random() * 0.02 + 0.015;
+            }
+            update() {
+                this.x += this.speedX;
+                this.y += this.speedY;
+                this.speedY += 0.2; 
+                this.life -= this.decay;
+            }
+            draw() {
+                if (this.life <= 0) return;
+                confCtx.save();
+                confCtx.globalAlpha = this.life;
+                confCtx.beginPath();
+                confCtx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                confCtx.fillStyle = this.color;
+                confCtx.shadowBlur = 25; 
+                confCtx.shadowColor = this.color;
+                confCtx.fill();
+                confCtx.restore();
+            }
+        }
+
+        class TextParticle {
+            constructor() {
+                this.x = window.innerWidth / 2;
+                this.y = window.innerHeight / 2;
+                this.text = "20";
+                this.color = confColors[Math.floor(Math.random() * confColors.length)];
+                
+                const angle = Math.random() * Math.PI * 2;
+                const speed = Math.random() * 15 + 8;
+                this.speedX = Math.cos(angle) * speed;
+                this.speedY = Math.sin(angle) * speed - 5;
+                
+                this.life = 1.0;
+                this.decay = Math.random() * 0.015 + 0.005;
+                this.size = Math.random() * 25 + 20; 
+                this.rotation = Math.random() * 360;
+                this.rotSpeed = (Math.random() - 0.5) * 15;
+            }
+            update() {
+                this.x += this.speedX;
+                this.y += this.speedY;
+                this.speedY += 0.3; 
+                this.rotation += this.rotSpeed;
+                this.life -= this.decay;
+            }
+            draw() {
+                if (this.life <= 0) return;
+                confCtx.save();
+                confCtx.globalAlpha = this.life;
+                confCtx.translate(this.x, this.y);
+                confCtx.rotate(this.rotation * Math.PI / 180);
+                confCtx.font = `bold ${this.size}px 'Arial Black'`;
+                confCtx.fillStyle = this.color;
+                confCtx.shadowBlur = 10;
+                confCtx.shadowColor = this.color;
+                confCtx.fillText(this.text, 0, 0);
+                confCtx.restore();
+            }
+        }
+
+        function triggerMassiveExplosion() {
+            for (let i = 0; i < 100; i++) ambientConfetti.push(new AmbientConfetti());
+            for (let i = 0; i < 60; i++) ambientFlares.push(new AmbientFlare());
+            for (let i = 0; i < 25; i++) ambientTexts.push(new AmbientText());
+            for (let i = 0; i < 150; i++) explosionParticles.push(new ExplosiveConfetti());
+            for (let i = 0; i < 300; i++) flares.push(new Flare());
+            for (let i = 0; i < 30; i++) textFlares.push(new TextParticle());
+        }
+
+        function animateAllConfetti() {
+            requestAnimationFrame(animateAllConfetti);
+            confCtx.clearRect(0, 0, confettiCanvas.width, confettiCanvas.height);
+            
+            ambientConfetti.forEach(piece => { piece.update(); piece.draw(); });
+            ambientFlares.forEach(flare => { flare.update(); flare.draw(); });
+            ambientTexts.forEach(text => { text.update(); text.draw(); }); 
+            
+            explosionParticles.forEach(piece => { piece.update(); piece.draw(); });
+            flares.forEach(flare => { flare.update(); flare.draw(); });
+            textFlares.forEach(tf => { tf.update(); tf.draw(); });
+        }
+
+        animateAllConfetti();
+
+        const balloonContainer = document.getElementById('balloon-container');
+        const scoreText = document.getElementById('score-text');
+        const gameScreen = document.getElementById('game-screen');
+        const mainContent = document.getElementById('main-content');
+        const bgMusic = document.getElementById('bgMusic'); 
+        const originalPopSound = document.getElementById('popSound'); 
+        
+        const popAudioPool = [];
+        const poolSize = 5;
+        const popSourceUrl = originalPopSound ? originalPopSound.querySelector('source').src : '';
+        
+        for (let i = 0; i < poolSize; i++) {
+            let audioNode = new Audio(popSourceUrl);
+            audioNode.preload = 'auto';
+            popAudioPool.push(audioNode);
+        }
+        let currentPopIndex = 0;
+
+        const balloonColors = ['#ff4081', '#00e5ff', '#b388ff', '#1de9b6', '#ffea00', '#ff5252'];
+        
+        let poppedCount = 0;
+        const targetPops = 20;
+        let balloonInterval;
+
+        function spawnBalloon() {
+            const balloon = document.createElement('div');
+            balloon.classList.add('game-balloon');
+            
+            const color = balloonColors[Math.floor(Math.random() * balloonColors.length)];
+            balloon.style.backgroundColor = color;
+            balloon.style.borderBottomColor = color;
+            balloon.style.left = (Math.random() * 80 + 10) + 'vw'; 
+            const speed = (Math.random() * 4 + 4) + 's';
+            balloon.style.setProperty('--speed', speed);
+
+            balloon.addEventListener('mousedown', popBalloon);
+            balloon.addEventListener('touchstart', popBalloon, {passive: false});
+
+            balloonContainer.appendChild(balloon);
+
+            setTimeout(() => {
+                if(balloon.parentElement) balloon.remove();
+            }, 9000); 
+        }
+
+        function popBalloon(e) {
+            e.preventDefault(); 
+            const balloon = e.target;
+            if(balloon.classList.contains('popped')) return;
+
+            if(popSourceUrl) {
+                let activePopSound = popAudioPool[currentPopIndex];
+                activePopSound.currentTime = 0;
+                let popPromise = activePopSound.play();
+                if (popPromise !== undefined) {
+                    popPromise.catch(err => console.log("Pop sound waiting:", err));
+                }
+                currentPopIndex = (currentPopIndex + 1) % poolSize; 
+            }
+
+            balloon.classList.add('popped');
+            poppedCount++;
+            scoreText.innerText = `${poppedCount} / ${targetPops}`;
+
+            setTimeout(() => {
+                if(balloon.parentElement) balloon.remove();
+            }, 200);
+
+            if(poppedCount >= targetPops) {
+                unlockCard();
+            }
+        }
+
+        function unlockCard() {
+            clearInterval(balloonInterval);
+            
+            gameScreen.style.opacity = '0';
+            balloonContainer.style.opacity = '0';
+            
+            setTimeout(() => {
+                gameScreen.style.display = 'none';
+                balloonContainer.style.display = 'none';
+                
+                mainContent.style.display = 'flex';
+                mainContent.style.animation = 'revealCard 1.2s cubic-bezier(0.34, 1.56, 0.64, 1) forwards';
+            }, 500); 
+        }
+
+        balloonInterval = setInterval(spawnBalloon, 600);
+
+        const birthdayCard = document.getElementById('birthday-card');
+        const bdayTitle = document.getElementById('bday-title'); 
+        const quoteText = document.getElementById('quote-text'); 
+        const nextQuoteBtn = document.getElementById('next-quote-btn');
+        const instruction = document.getElementById('instruction-text');
+        const cardBack = document.querySelector('.card-back'); 
+
+        const bgColors = [
+            '#0b0914', '#140911', '#091114', '#140f09', '#0e0914', '#14090c' 
+        ];
+        
+        const accentColors = [
+            '#9c27b0', '#c2185b', '#0097a7', '#2e7d32', '#ef6c00', '#d81b60', '#512da8', '#00796b'
+        ];
+
+        let currentBgIndex = 0;
+        let currentAccentIndex = 0; 
+
+        const quotes = [
+            "Welcome to your 20s! May this year bring you endless joy and success. ✨",
+            "Happy 20th! Another trip around the sun, and you just keep getting better. 🌟",
+            "Here is to a brilliant day and an absolutely amazing new decade. 🥂",
+            "Keep shining and doing incredible things. Have a fantastic birthday! 🎈💖",
+            "Twenty looks absolutely amazing on you! Wishing you the best day ever. 😎🍰",
+            "Cheers to two decades of being awesome! Let the real fun begin. 🍾🎉",
+            "Happy Birthday! May your 20s be filled with unforgettable adventures. 🌍✈️",
+            "Wishing you a day filled with love, laughter, and lots of cake! 🎂✨",
+            "Level 20 unlocked! 🎮 Ready to crush this new chapter of your life? 🚀",
+            "May all your wishes come true today and always. Have a blast, buddy! 🌠🎁",
+            "Happy 20th! You have so much to look forward to, enjoy every single second. ⏳💐",
+            "Sending you the biggest birthday hugs! Let's celebrate YOU today. 🤗🎊",
+            "Here's to the beautiful, smart, and amazing 20-year-old you are today! 🌸💕",
+            "May this new decade be your best one yet. Happy Birthday! 🥳💫",
+            "Hope your special day is as incredible as your friendship is to me! 👯‍♀️❤️",
+            "20 years of making the world a brighter place. Keep glowing! ☀️🥰",
+            "Eat the cake, make a wish, and let's party! Happy 20th! 🎂🎈🕺"
+        ];
+
+        let currentQuoteIndex = 0;
+        let isFlipped = false;
+
+        birthdayCard.addEventListener('click', () => {
+            if (!isFlipped) {
+                isFlipped = true;
+                
+                if (bgMusic && bgMusic.paused) {
+                    bgMusic.play().catch(err => console.log("Music waiting for interaction:", err));
+                }
+
+                birthdayCard.classList.add('flipped');
+                instruction.style.opacity = '0';
+                
+                setTimeout(() => {
+                    quoteText.innerText = `"${quotes[currentQuoteIndex]}"`;
+                    quoteText.classList.add('visible');
+                    nextQuoteBtn.classList.add('visible');
+                }, 600); 
+
+                triggerMassiveExplosion();
+                
+                orbs.forEach(orb => {
+                    orb.vx *= 3;
+                    orb.vy *= 3;
+                });
+            }
+        });
+
+        nextQuoteBtn.addEventListener('click', (e) => {
+            e.stopPropagation(); 
+            
+            currentBgIndex = (currentBgIndex + 1) % bgColors.length;
+            document.body.style.backgroundColor = bgColors[currentBgIndex];
+
+            currentAccentIndex = (currentAccentIndex + 1) % accentColors.length;
+            const newAccentColor = accentColors[currentAccentIndex];
+            
+            nextQuoteBtn.style.backgroundColor = newAccentColor;
+            cardBack.style.borderColor = newAccentColor;
+            bdayTitle.style.color = newAccentColor; 
+            quoteText.style.color = newAccentColor; 
+
+            quoteText.classList.remove('visible');
+            setTimeout(() => {
+                currentQuoteIndex = (currentQuoteIndex + 1) % quotes.length;
+                quoteText.innerText = `"${quotes[currentQuoteIndex]}"`;
+                quoteText.classList.add('visible');
+            }, 400);
+        });
+
     </script>
 </body>
 </html>
