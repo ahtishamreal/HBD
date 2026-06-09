@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>For Nimra</title>
+    <style>
+        /* Base Styling */
+        body {
+            margin: 0;
+            padding: 0;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background-color: #0b0914; 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            overflow: hidden;
+        }
+
+        /* Canvas Layers */
+        #bgCanvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+            pointer-events: none;
+        }
+
+        #confettiCanvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 100;
+        }
+
+        /* Interactive Envelope Styling */
+        .envelope-wrapper {
+            position: relative;
+            width: 300px;
+            height: 200px;
+            /* FIX 1: Pushed the envelope down slightly so the card has room to go up */
+            margin-top: 80px; 
+            cursor: pointer;
+            z-index: 10;
+            transition: transform 0.3s ease;
+        }
+
+        .envelope-wrapper:hover {
+            transform: scale(1.05);
+        }
+
+        .envelope-back {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background-color: #9c27b0;
+            border-radius: 10px;
+            box-shadow: 0 15px 40px rgba(0,0,0,0.7);
+        }
+
+        .envelope-front {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background-color: #ab47bc;
+            border-radius: 10px;
+            clip-path: polygon(0 0, 50% 50%, 100% 0, 100% 100%, 0 100%);
+            z-index: 3;
+        }
+
+        .envelope-flap {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background-color: #ba68c8;
+            border-radius: 10px;
+            clip-path: polygon(0 0, 100% 0, 50% 60%);
+            z-index: 4;
+            transform-origin: top;
+            transition: transform 0.8s ease;
+        }
+
+        .card {
+            position: absolute;
+            width: 280px;
+            height: 350px;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(5px);
+            bottom: 10px;
+            left: 10px;
+            border-radius: 10px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.3);
+            z-index: 2;
+            transition: transform 1s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            box-sizing: border-box;
+            text-align: center;
+        }
+
+        /* Open State - FIX 2: Reduced the slide height so it stays on screen */
+        .envelope-wrapper.open .envelope-flap {
+            transform: rotateX(180deg);
+            z-index: 1;
+        }
+
+        .envelope-wrapper.open .card {
+            transform: translateY(-130px); /* Changed from -180px */
+            z-index: 5;
+        }
+
+        /* Card Contents */
+        h1 {
+            color: #9c27b0;
+            font-size: 1.6rem;
+            margin-bottom: 10px;
+            opacity: 0;
+            transition: opacity 1s ease 1s;
+        }
+
+        .quote {
+            font-size: 1rem;
+            color: #333;
+            margin-bottom: 20px;
+            font-style: italic;
+            min-height: 80px;
+            opacity: 0;
+            transition: opacity 0.5s ease;
+        }
+
+        .quote.visible {
+            opacity: 1;
+        }
+
+        button {
+            background-color: #9c27b0;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            cursor: pointer;
+            outline: none;
+            opacity: 0;
+            transition: background 0.3s, opacity 1s ease 1s, transform 0.2s;
+        }
+
+        button:hover {
+            background-color: #7b1fa2;
+            transform: scale(1.05);
+        }
+
+        .instruction {
+            position: absolute;
+            top: 15%; /* Adjusted for mobile */
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 1.2rem;
+            letter-spacing: 2px;
+            z-index: 20;
+            animation: pulse 2s infinite alternate;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 0.4; }
+            100% { opacity: 1; }
+        }
+
+        /* FIX 3: Mobile Specific Rules */
+        @media (max-width: 500px) {
+            .envelope-wrapper {
+                transform: scale(0.85); /* Shrinks the entire envelope to 85% size on phones */
+            }
+            .envelope-wrapper:hover {
+                transform: scale(0.9);
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <audio id="bgMusic" loop>
+        <source src="song.mp3" type="audio/mpeg">
+    </audio>
+
+    <canvas id="bgCanvas"></canvas>
+    <canvas id="confettiCanvas"></canvas>
+    <div class="instruction" id="instruction-text">Tap the envelope to open</div>
+
+    <div class="envelope-wrapper" id="envelope">
+        <div class="envelope-back"></div>
+        <div class="card">
+            <h1 id="bday-title">Happy Birthday, Nimra!</h1>
+            <div class="quote" id="quote-text"></div>
+            <button id="next-quote-btn">Read Another Message</button>
+        </div>
+        <div class="envelope-front"></div>
+        <div class="envelope-flap"></div>
+    </div>
+
+    <script>
+        // 1. HIGH-LEVEL BACKGROUND (GLOWING ORBS)
+        const bgCanvas = document.getElementById('bgCanvas');
+        const bgCtx = bgCanvas.getContext('2d');
+        bgCanvas.width = window.innerWidth;
+        bgCanvas.height = window.innerHeight;
+
+        window.addEventListener('resize', () => {
+            bgCanvas.width = window.innerWidth;
+            bgCanvas.height = window.innerHeight;
+        });
+
+        const orbs = [];
+        const numOrbs = 20;
+
+        class Orb {
+            constructor() {
+                this.x = Math.random() * bgCanvas.width;
+                this.y = Math.random() * bgCanvas.height;
+                this.radius = Math.random() * 150 + 50; 
+                this.vx = (Math.random() - 0.5) * 0.8; 
+                this.vy = (Math.random() - 0.5) * 0.8;
+                this.hue = Math.random() * 80 + 260; 
+                this.alpha = Math.random() * 0.3 + 0.1;
+            }
+            draw() {
+                bgCtx.beginPath();
+                bgCtx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+                const gradient = bgCtx.createRadialGradient(this.x, this.y, 0, this.x, this.y, this.radius);
+                gradient.addColorStop(0, `hsla(${this.hue}, 100%, 65%, ${this.alpha})`);
+                gradient.addColorStop(1, `hsla(${this.hue}, 100%, 65%, 0)`);
+                bgCtx.fillStyle = gradient;
+                bgCtx.fill();
+            }
+            update() {
+                this.x += this.vx;
+                this.y += this.vy;
+                if (this.x < -this.radius || this.x > bgCanvas.width + this.radius) this.vx *= -1;
+                if (this.y < -this.radius || this.y > bgCanvas.height + this.radius) this.vy *= -1;
+            }
+        }
+
+        for (let i = 0; i < numOrbs; i++) {
+            orbs.push(new Orb());
+        }
+
+        function animateBg() {
+            requestAnimationFrame(animateBg);
+            bgCtx.clearRect(0, 0, bgCanvas.width, bgCanvas.height);
+            bgCtx.globalCompositeOperation = 'screen'; 
+            orbs.forEach(orb => {
+                orb.update();
+                orb.draw();
+            });
+        }
+        animateBg();
+
+        // 2. ENVELOPE INTERACTION & MUSIC TRIGGER
+        const envelope = document.getElementById('envelope');
+        const quoteText = document.getElementById('quote-text');
+        const nextQuoteBtn = document.getElementById('next-quote-btn');
+        const bdayTitle = document.getElementById('bday-title');
+        const instruction = document.getElementById('instruction-text');
+        const bgMusic = document.getElementById('bgMusic'); 
+
+        const quotes = [
+            "May this year bring you as much joy and success as you bring to everyone around you.",
+            "Another trip around the sun! Wishing you endless happiness and great achievements.",
+            "Here is to a brilliant day and an even better year ahead.",
+            "Keep shining and doing amazing things. Have a fantastic birthday!"
+        ];
+
+        let currentQuoteIndex = 0;
+        let isOpened = false;
+
+        envelope.addEventListener('click', () => {
+            if (!isOpened) {
+                isOpened = true;
+                
+                // Audio robust loading logic
+                bgMusic.load(); 
+                let playPromise = bgMusic.play();
+                
+                if (playPromise !== undefined) {
+                    playPromise.then(_ => {})
+                    .catch(error => {
+                        console.error("Audio block detected:", error);
+                    });
+                }
+
+                envelope.classList.add('open');
+                instruction.style.display = 'none';
+                bdayTitle.style.opacity = '1';
+                nextQuoteBtn.style.opacity = '1';
+                
+                setTimeout(() => {
+                    quoteText.innerText = `"${quotes[currentQuoteIndex]}"`;
+                    quoteText.classList.add('visible');
+                }, 1000);
+
+                startConfetti();
+                
+                orbs.forEach(orb => {
+                    orb.vx *= 2.5;
+                    orb.vy *= 2.5;
+                });
+            }
+        });
+
+        nextQuoteBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            quoteText.classList.remove('visible');
+            setTimeout(() => {
+                currentQuoteIndex = (currentQuoteIndex + 1) % quotes.length;
+                quoteText.innerText = `"${quotes[currentQuoteIndex]}"`;
+                quoteText.classList.add('visible');
+            }, 500);
+        });
+
+        // 3. CONFETTI PHYSICS ENGINE
+        const confettiCanvas = document.getElementById('confettiCanvas');
+        const confCtx = confettiCanvas.getContext('2d');
+        confettiCanvas.width = window.innerWidth;
+        confettiCanvas.height = window.innerHeight;
+
+        const confettiPieces = [];
+        const confColors = ['#ffcc00', '#ff4081', '#00e5ff', '#b388ff', '#1de9b6'];
+
+        class Confetti {
+            constructor() {
+                this.x = Math.random() * confettiCanvas.width;
+                this.y = Math.random() * confettiCanvas.height - confettiCanvas.height;
+                this.size = Math.random() * 8 + 4;
+                this.color = confColors[Math.floor(Math.random() * confColors.length)];
+                this.speedY = Math.random() * 4 + 3;
+                this.speedX = Math.random() * 4 - 2;
+                this.rotation = Math.random() * 360;
+                this.rotationSpeed = Math.random() * 15 - 7.5;
+            }
+            update() {
+                this.y += this.speedY;
+                this.x += this.speedX;
+                this.rotation += this.rotationSpeed;
+                if (this.y > confettiCanvas.height) {
+                    this.y = -20;
+                    this.x = Math.random() * confettiCanvas.width;
+                }
+            }
+            draw() {
+                confCtx.save();
+                confCtx.translate(this.x, this.y);
+                confCtx.rotate(this.rotation * Math.PI / 180);
+                confCtx.fillStyle = this.color;
+                confCtx.fillRect(-this.size / 2, -this.size / 2, this.size, this.size * 0.4);
+                confCtx.restore();
+            }
+        }
+
+        function startConfetti() {
+            for (let i = 0; i < 200; i++) {
+                confettiPieces.push(new Confetti());
+            }
+            animateConfetti();
+        }
+
+        function animateConfetti() {
+            requestAnimationFrame(animateConfetti);
+            confCtx.clearRect(0, 0, confettiCanvas.width, confettiCanvas.height);
+            confettiPieces.forEach(piece => {
+                piece.update();
+                piece.draw();
+            });
+        }
+    </script>
+</body>
+</html>
